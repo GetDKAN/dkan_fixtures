@@ -42,14 +42,6 @@ class MigrateCkanDatasetFixturesDefault extends MigrateCkanDatasetImport {
    * Implements prepare.
    */
   public function prepare($entity, $row) {
-    if (isset($row->dkan_additional_fields->field_data_citation->title)) {
-      $entity->field_data_citation['und'][0]['title'] = $row->dkan_additional_fields->field_data_citation->title;
-      $entity->field_data_citation['und'][0]['url'] = $row->dkan_additional_fields->field_data_citation->url;
-    }
-    if (isset($row->dkan_additional_fields->field_related_content->title)) {
-      $entity->field_related_content['und'][0]['title'] = $row->dkan_additional_fields->field_related_content->title;
-      $entity->field_related_content['und'][0]['url'] = $row->dkan_additional_fields->field_related_content->url;
-    }
   }
 
 }
