@@ -1,0 +1,1 @@
+{"result":{"help":"Return the metadata of a dataset (package) and its resources. :param id: the id or name of the dataset :type id: string","success":false,"error":{"__type":"Validation Error","name_or_id":["Missing Value"]}},"headers":{"Status":"400 Bad Request"}}

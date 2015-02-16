@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @file
+ * DKAN Default content fixtures file.
+ */
+
+/**
+ * Implements hook_migrate_api().
+ */
+function dkan_fixtures_default_migrate_api() {
+  $api = array(
+    'api' => 2,
+    'migrations' => array(
+      'dkan_fixtures_default_dataset' => array(
+        'class_name' => 'MigrateCkanDatasetFixturesDefault',
+        'group_name' => 'dkan_fixtures',
+        'title' => t('DKAN Default Content'),
+      ),
+    ),
+  );
+  return $api;
+}
+
+/**
+ * Implements hook_dkan_fixtures_register().
+ */
+function dkan_fixtures_default_dkan_fixtures_register() {
+  return 'dkan_fixtures_default';
+}
+
+class MigrateCkanDatasetFixturesDefault extends MigrateCkanDatasetImport {
+  /**
+   * Here we go.
+   */
+  public function __construct($arguments) {
+    $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures_default') . '/data/';
+    parent::__construct($arguments);
+  }
+
+  /**
+   * Implements prepare.
+   */
+  public function prepare($entity, $row) {
+    if (isset($row->dkan_additional_fields->field_data_citation->title)) {
+      $entity->field_data_citation['und'][0]['title'] = $row->dkan_additional_fields->field_data_citation->title;
+      $entity->field_data_citation['und'][0]['url'] = $row->dkan_additional_fields->field_data_citation->url;
+    }
+    if (isset($row->dkan_additional_fields->field_related_content->title)) {
+      $entity->field_related_content['und'][0]['title'] = $row->dkan_additional_fields->field_related_content->title;
+      $entity->field_related_content['und'][0]['url'] = $row->dkan_additional_fields->field_related_content->url;
+    }
+  }
+
+}
+
+/**
+ * Deregisters migrations.
+ */
+function dkan_fixtures_default_migrations_disable() {
+  Migration::deregisterMigration('dkan_fixtures_default_dataset');
+}
