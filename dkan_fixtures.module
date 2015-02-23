@@ -6,93 +6,6 @@
  */
 
 /**
- * Implements hook_migrate_api().
- */
-function dkan_fixtures_migrate_api() {
-  $api = array(
-    // Migrate API, not CKAN's of course.
-    'api' => 2,
-    'groups' => array(
-      'dkan_fixtures' => array(
-        'title' => t('DKAN Fixtures'),
-      ),
-    ),
-    'migrations' => array(
-      'ckan_dataset_fixtures' => array(
-        'class_name' => 'MigrateCkanDatasetImport',
-        'group_name' => 'dkan_fixtures',
-        'title' => t('DKAN Dataset Fixtures'),
-      ),
-    ),
-  );
-  return $api;
-}
-
-class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
-  /**
-   * Here we go.
-   */
-  public function __construct($arguments) {
-    $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures') . '/data/';
-    $arguments['list_url'] = 'package_list.json';
-    $arguments['item_url'] = 'package_show?id=:id.json';
-    parent::__construct($arguments);
-
-    $fields = $this->additionalFields();
-    foreach ($fields as $id => $field) {
-      $this->addFieldMapping($field, $field);
-    }
-  }
-
-  /**
-   * Gets additional fields.
-   */
-  public function additionalFields() {
-    $api = open_data_schema_map_api_load('ckan_package_show');
-    $fields = open_data_schema_map_additional_fields($api);
-    $additional_fields = array();
-    foreach ($fields as $id => $field) {
-      if ($field != 'field_resources' &&
-          $field != 'field_contact_email' &&
-          $field != 'field_spatial' &&
-          $field != 'field_tags' &&
-          $field != 'field_additional_info') {
-        $additional_fields[] = $field;
-      }
-    }
-    return $additional_fields;
-  }
-
-  /**
-   * Implements prepareRow.
-   */
-  public function prepareRow($row) {
-    $fields = $this->additionalFields();
-    // Uses 'value' if available.
-    foreach ($fields as $id => $field) {
-      if (is_array($row->dkan_additional_fields->{$field}) && $row->dkan_additional_fields->{$field}) {
-        if (is_object($row->dkan_additional_fields->{$field}[0])) {
-          if (isset($row->dkan_additional_fields->{$field}[0]->value)) {
-            $row->{$field} = $row->dkan_additional_fields->{$field}[0]->value;
-          }
-        }
-        else {
-          $row->{$field} = $row->dkan_additional_fields->{$field}[0];
-        }
-      }
-      elseif (is_object($row->dkan_additional_fields->{$field})) {
-        if (isset($row->dkan_additional_fields->{$field}->value)) {
-          $row->{$field} = $row->dkan_additional_fields->{$field}->value;
-        }
-      }
-      else {
-        $row->{$field} = $row->dkan_additional_fields->{$field};
-      }
-    }
-  }
-}
-
-/**
  * Render fixtures for datasets.
  */
 function dkan_fixtures_render_fixtures() {
@@ -106,6 +19,7 @@ function dkan_fixtures_render_fixtures() {
     'filename' => 'package_list.json',
     'content' => drupal_json_encode($package_list),
   );
+  $resource_ids = array();
 
   // Use ids in package_list to create exports for every dataset.
   $package_show_api = open_data_schema_map_api_load('ckan_package_show');
@@ -113,12 +27,54 @@ function dkan_fixtures_render_fixtures() {
     $query = array('id' => $id, 'q' => 'api/3/action/package_show');
     $queries = array('id' => $id);
     $package_show = open_data_schema_map_render_api($package_show_api, $query, $queries);
+    $package_show = $package_show['result'];
+    foreach ($package_show['result']['resources'] as $key => $resource) {
+      if (isset($resource['url'])) {
+        $file = $resource['url'];
+        $file = parse_url($file);
+        $file = DRUPAL_ROOT . $file['path'];
+        $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+      }
+      $resource_ids[] = $resource['id'];
+    }
     $rendered_fixtures[] = array(
       'filename' => 'package_show?id=' . $id . '.json',
-      'content' => drupal_json_encode($package_show['result']),
+      'content' => drupal_json_encode($package_show),
     );
   }
 
+  // Fake resource-list
+  $rendered_fixtures[] = array(
+    'filename' => 'resource_list.json',
+    'content' => drupal_json_encode(
+      array(
+        'help' => t('List of resource ids'),
+        'result' => $resource_ids,
+      )
+    ),
+  );
+
+  // Use ids in fake resource-list to create exports for every resource.
+  $resource_show_api = open_data_schema_map_api_load('ckan_resource_show');
+  foreach ($resource_ids as $id) {
+    $files_to_save = array();
+    $query = array('id' => $id, 'q' => 'api/3/action/resource_show');
+    $queries = array('id' => $id);
+    $resource_show = open_data_schema_map_render_api($resource_show_api, $query, $queries);
+    $resource_show = $resource_show['result'];
+    if (isset($resource_show['result']['url'])) {
+      $file = $resource_show['result']['url'];
+      $file = parse_url($file);
+      $file = DRUPAL_ROOT . $file['path'];
+      $files_to_save[] = $file;
+      $resource_show['result']['url'] = 'files/' . basename($file);
+    }
+    $rendered_fixtures[] = array(
+      'filename' => 'resource_show?id=' . $id . '.json',
+      'content' => drupal_json_encode($resource_show),
+      'resource_files' => $files_to_save,
+    );
+  }
   return $rendered_fixtures;
 }
 
@@ -129,6 +85,12 @@ function dkan_fixtures_save_fixture($fixture, $module_path) {
   $file = fopen($module_path . '/data/' . $fixture['filename'], 'w');
   fwrite($file, $fixture['content']);
   fclose($file);
+  if (isset($fixture['resource_files'])) {
+    foreach ($fixture['resource_files'] as $resource_file) {
+      $destination = $module_path . '/data/files/' . basename($resource_file);
+      file_unmanaged_copy($resource_file, $destination, FILE_EXISTS_REPLACE);
+    }
+  }
 }
 
 /**
@@ -136,32 +98,6 @@ function dkan_fixtures_save_fixture($fixture, $module_path) {
  */
 function dkan_fixtures_migrations_disable() {
   Migration::deregisterMigration('ckan_dataset_fixtures');
-}
-
-/**
- * Drush save_fixtures command callback.
- */
-function drush_dkan_fixtures_dkan_save_data() {
-  // Allows other modules to recive exports.
-  $modules = module_implements('dkan_fixtures_register');
-  $modules = $modules ? $modules : array('dkan_fixtures');
-  dpm($modules);
-  foreach ($modules as $module) {
-    $module_path = drupal_get_path('module', $module);
-    // Remove old files.
-    $files = glob($module_path . '/data/*');
-    foreach ($files as $file) {
-      if (is_file($file)) {
-        unlink($file);
-      }
-    }
-    // Create new fixtures.
-    $fixtures = dkan_fixtures_render_fixtures();
-    // Save them.
-    foreach ($fixtures as $fixture) {
-      dkan_fixtures_save_fixture($fixture, $module_path);
-    }
-  }
 }
 
 /**
