@@ -1,0 +1,3 @@
+data/*.json
+data/files/*
+!data/files/.gitkeep

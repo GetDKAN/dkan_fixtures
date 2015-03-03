@@ -6,3 +6,4 @@ package = DKAN
 dependencies[] = 'open_data_schema_map_dkan'
 dependencies[] = 'usda_pod_implementation'
 dependencies[] = 'dkan_migrate_base'
+files[] = dkan_fixtures.migrate.inc
