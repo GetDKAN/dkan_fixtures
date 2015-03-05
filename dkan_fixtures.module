@@ -54,6 +54,8 @@ function dkan_fixtures_render_fixtures() {
     ),
   );
 
+  global $base_url;
+
   // Use ids in fake resource-list to create exports for every resource.
   $resource_show_api = open_data_schema_map_api_load('ckan_resource_show');
   foreach ($resource_ids as $id) {
@@ -64,10 +66,12 @@ function dkan_fixtures_render_fixtures() {
     $resource_show = $resource_show['result'];
     if (isset($resource_show['result']['url'])) {
       $file = $resource_show['result']['url'];
-      $file = parse_url($file);
-      $file = DRUPAL_ROOT . $file['path'];
-      $files_to_save[] = $file;
-      $resource_show['result']['url'] = 'files/' . basename($file);
+      if (strpos($file, $base_url) !== FALSE) {
+        $file = parse_url($file);
+        $file = DRUPAL_ROOT . $file['path'];
+        $files_to_save[] = $file;
+        $resource_show['result']['url'] = 'files/' . basename($file);
+      }
     }
     $rendered_fixtures[] = array(
       'filename' => 'resource_show?id=' . $id . '.json',
@@ -156,6 +160,32 @@ function dkan_fixtures_open_data_schema_map_results_alter(&$result, $machine_nam
     $fields = open_data_schema_map_additional_fields($api);
     foreach ($fields as $id => $field) {
       $result[0]['dkan_additional_fields'][$field] = $restws_result[$field];
+    }
+  }
+}
+
+/**
+ * Saves all available fixtures.
+ */
+function dkan_fixtures_dkan_save_data() {
+
+  // Allows other modules to receive exports.
+  $modules = module_implements('dkan_fixtures_register');
+  $modules = $modules ? $modules : array('dkan_fixtures');
+  foreach ($modules as $module) {
+    $module_path = drupal_get_path('module', $module);
+    // Remove old files.
+    $files = glob($module_path . '/data/*');
+    foreach ($files as $file) {
+      if (is_file($file)) {
+        unlink($file);
+      }
+    }
+    // Create new fixtures.
+    $fixtures = dkan_fixtures_render_fixtures();
+    // Save them.
+    foreach ($fixtures as $fixture) {
+      dkan_fixtures_save_fixture($fixture, $module_path);
     }
   }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Migration file for dkan_fixtures
+ * Migration file for dkan_fixtures.
  */
 
 
@@ -38,9 +38,11 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
    * Here we go.
    */
   public function __construct($arguments) {
-    $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures') . '/data/';
-    $arguments['list_url'] = 'package_list.json';
-    $arguments['item_url'] = 'package_show?id=:id.json';
+    if (!isset($arguments['endpoint'])) {
+      $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures') . '/data/';
+      $arguments['list_url'] = '_list.json';
+      $arguments['item_url'] = 'package_show?id=:id.json';
+    }
     parent::__construct($arguments);
 
     $fields = $this->additionalFields();
@@ -73,17 +75,31 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
    */
   public function prepareRow($row) {
     parent::prepareRow($row);
+    $row = $this->addAdditionalFields($row);
+  }
+
+  /**
+   * Adds Additional fields to $row.
+   */
+  public function addAdditionalFields(&$row) {
     $fields = $this->additionalFields();
+    dpm($row);
     // Uses 'value' if available.
     foreach ($fields as $id => $field) {
       if (is_array($row->dkan_additional_fields->{$field}) && $row->dkan_additional_fields->{$field}) {
         if (is_object($row->dkan_additional_fields->{$field}[0])) {
-          if (isset($row->dkan_additional_fields->{$field}[0]->value)) {
-            $row->{$field} = $row->dkan_additional_fields->{$field}[0]->value;
+          foreach ($row->dkan_additional_fields->{$field} as $num => $field_value) {
+            if (isset($row->dkan_additional_fields->{$field}[$num]->value)) {
+              $row->{$field}[$num] = $row->dkan_additional_fields->{$field}[$num]->value;
+            }
           }
         }
         else {
-          $row->{$field} = $row->dkan_additional_fields->{$field}[0];
+          foreach ($row->dkan_additional_fields->{$field} as $num => $field_value) {
+            if (isset($row->dkan_additional_fields->{$field}[$num]->value)) {
+              $row->{$field}[$num] = $row->dkan_additional_fields->{$field}[$num];
+            }
+          }
         }
       }
       elseif (is_object($row->dkan_additional_fields->{$field})) {
@@ -103,11 +119,12 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
    * Here we go.
    */
   public function __construct($arguments) {
-    $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures') . '/data/';
-    $arguments['list_url'] = 'resource_list.json';
-    $arguments['item_url'] = 'resource_show?id=:id.json';
+    if (!isset($arguments['endpoint'])) {
+      $arguments['endpoint'] = drupal_get_path('module', 'dkan_fixtures') . '/data/';
+      $arguments['list_url'] = 'package_list.json';
+      $arguments['item_url'] = 'package_show?id=:id.json';
+    }
     parent::__construct($arguments);
-
   }
 
   /**
@@ -117,16 +134,37 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
     parent::prepareRow($row);
     // Replace with absolute path.
     if (isset($row->url)) {
-      $row->url = DRUPAL_ROOT . '/' . $this->endpoint . $row->url;
-      // Create file.
-      $data = file_get_contents($row->url);
-      $name = basename($row->url);
-      $uri = 'public://' . $name;
-      $file = file_save_data($data, $uri, FILE_EXISTS_REPLACE);
-      $row->file = $file->fid;
-      // Unset other fields populated from url.
-      unset($row->file_remote_link);
-      unset($row->link);
+      if (strpos($row->url, 'http://') === FALSE) {
+        $row->url = DRUPAL_ROOT . '/' . $this->endpoint . $row->url;
+        if (file_exists($row->url)) {
+          // Create file.
+          $data = file_get_contents($row->url);
+          $name = basename($row->url);
+          $uri = 'public://' . $name;
+          $file = file_save_data($data, $uri, FILE_EXISTS_REPLACE);
+          $row->file = $file->fid;
+          // Unset other fields populated from url.
+          unset($row->file_remote_link);
+          unset($row->link);
+        }
+        else {
+          $this->queuedMessages[] = array(
+            'message' => t('%url was not available for download', array('%url' => $row->url)),
+            'level' => MigrationBase::MESSAGE_NOTICE,
+          );
+        }
+      }
     }
   }
 }
+/****
+ *
+        $headers = get_headers($row->url);
+        $code = substr($headers[0], 9, 3);
+        if (get_http_response_code($code) != "200") {
+          $this->queuedMessages[] = array(
+            'message' => t('%url was not available for download', array('%url' => $row->url)),
+            'level' => MigrationBase::MESSAGE_NOTICE,
+          );
+        }
+        else { */
