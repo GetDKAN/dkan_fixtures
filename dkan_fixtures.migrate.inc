@@ -83,7 +83,6 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
    */
   public function addAdditionalFields(&$row) {
     $fields = $this->additionalFields();
-    dpm($row);
     // Uses 'value' if available.
     foreach ($fields as $id => $field) {
       if (is_array($row->dkan_additional_fields->{$field}) && $row->dkan_additional_fields->{$field}) {
@@ -157,14 +156,3 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
     }
   }
 }
-/****
- *
-        $headers = get_headers($row->url);
-        $code = substr($headers[0], 9, 3);
-        if (get_http_response_code($code) != "200") {
-          $this->queuedMessages[] = array(
-            'message' => t('%url was not available for download', array('%url' => $row->url)),
-            'level' => MigrationBase::MESSAGE_NOTICE,
-          );
-        }
-        else { */
