@@ -33,19 +33,21 @@ function dkan_fixtures_render_fixtures($nids = array()) {
       $queries = array('id' => $id);
       $package_show = open_data_schema_map_render_api($package_show_api, $query, $queries);
       $package_show = $package_show['result'];
-      foreach ($package_show['result']['resources'] as $key => $resource) {
-        if (isset($resource['url'])) {
-          $file = $resource['url'];
-          $file = parse_url($file);
-          $file = DRUPAL_ROOT . $file['path'];
-          $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+      if (isset($package_show['result']['resources'])) {
+        foreach ($package_show['result']['resources'] as $key => $resource) {
+          if (isset($resource['url'])) {
+            $file = $resource['url'];
+            $file = parse_url($file);
+            $file = DRUPAL_ROOT . $file['path'];
+            $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+          }
+          $resource_ids[] = $resource['id'];
         }
-        $resource_ids[] = $resource['id'];
+        $rendered_fixtures[] = array(
+          'filename' => 'package_show?id=' . $id . '.json',
+          'content' => open_data_schema_map_json_encode($package_show),
+        );
       }
-      $rendered_fixtures[] = array(
-        'filename' => 'package_show?id=' . $id . '.json',
-        'content' => open_data_schema_map_json_encode($package_show),
-      );
     }
 
     // Fake resource-list
@@ -67,6 +69,7 @@ function dkan_fixtures_render_fixtures($nids = array()) {
       $files_to_save = array();
       $query = array('id' => $id, 'q' => 'api/3/action/resource_show');
       $queries = array('id' => $id);
+      $resource_show_api->mapping['url']['value'] = '[node:field-link-api:url] || [node:field_link_remote_file] || [node:field-upload:url]';
       $resource_show = open_data_schema_map_render_api($resource_show_api, $query, $queries);
       $resource_show = $resource_show['result'];
       if (isset($resource_show['result']['url'])) {
