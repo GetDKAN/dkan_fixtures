@@ -8,76 +8,82 @@
 /**
  * Render fixtures for datasets.
  */
-function dkan_fixtures_render_fixtures() {
+function dkan_fixtures_render_fixtures($nids = array()) {
   $rendered_fixtures = array();
 
   // Render list of packages first.
   $package_list_api = open_data_schema_map_api_load('ckan_package_list');
-  $package_list_fetch = open_data_schema_map_render_api($package_list_api);
+  // This adds arguments to ckan_package_list so we can only get specifiied IDs.
+  $package_list_api->arguments[] = array('field' => 'id', 'required' => 0);
+  $package_list_api->mapping['id']['value'] = '[node:nid]';
+
+  $package_list_fetch = open_data_schema_map_render_api($package_list_api, NULL, array('id' => $nids));
   $package_list = $package_list_fetch['result'];
   $rendered_fixtures[] = array(
     'filename' => 'package_list.json',
-    'content' => drupal_json_encode($package_list),
+    'content' => open_data_schema_map_json_encode($package_list),
   );
   $resource_ids = array();
 
   // Use ids in package_list to create exports for every dataset.
   $package_show_api = open_data_schema_map_api_load('ckan_package_show');
-  foreach ($package_list['result'] as $id) {
-    $query = array('id' => $id, 'q' => 'api/3/action/package_show');
-    $queries = array('id' => $id);
-    $package_show = open_data_schema_map_render_api($package_show_api, $query, $queries);
-    $package_show = $package_show['result'];
-    foreach ($package_show['result']['resources'] as $key => $resource) {
-      if (isset($resource['url'])) {
-        $file = $resource['url'];
-        $file = parse_url($file);
-        $file = DRUPAL_ROOT . $file['path'];
-        $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+  if (isset($package_list['result'])) {
+    foreach ($package_list['result'] as $id) {
+      $query = array('id' => $id, 'q' => 'api/3/action/package_show');
+      $queries = array('id' => $id);
+      $package_show = open_data_schema_map_render_api($package_show_api, $query, $queries);
+      $package_show = $package_show['result'];
+      foreach ($package_show['result']['resources'] as $key => $resource) {
+        if (isset($resource['url'])) {
+          $file = $resource['url'];
+          $file = parse_url($file);
+          $file = DRUPAL_ROOT . $file['path'];
+          $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+        }
+        $resource_ids[] = $resource['id'];
       }
-      $resource_ids[] = $resource['id'];
+      $rendered_fixtures[] = array(
+        'filename' => 'package_show?id=' . $id . '.json',
+        'content' => open_data_schema_map_json_encode($package_show),
+      );
     }
+
+    // Fake resource-list
     $rendered_fixtures[] = array(
-      'filename' => 'package_show?id=' . $id . '.json',
-      'content' => drupal_json_encode($package_show),
+      'filename' => 'resource_list.json',
+      'content' => drupal_json_encode(
+        array(
+          'help' => t('List of resource ids'),
+          'result' => $resource_ids,
+        )
+      ),
     );
-  }
 
-  // Fake resource-list
-  $rendered_fixtures[] = array(
-    'filename' => 'resource_list.json',
-    'content' => drupal_json_encode(
-      array(
-        'help' => t('List of resource ids'),
-        'result' => $resource_ids,
-      )
-    ),
-  );
+    global $base_url;
 
-  global $base_url;
-
-  // Use ids in fake resource-list to create exports for every resource.
-  $resource_show_api = open_data_schema_map_api_load('ckan_resource_show');
-  foreach ($resource_ids as $id) {
-    $files_to_save = array();
-    $query = array('id' => $id, 'q' => 'api/3/action/resource_show');
-    $queries = array('id' => $id);
-    $resource_show = open_data_schema_map_render_api($resource_show_api, $query, $queries);
-    $resource_show = $resource_show['result'];
-    if (isset($resource_show['result']['url'])) {
-      $file = $resource_show['result']['url'];
-      if (strpos($file, $base_url) !== FALSE) {
-        $file = parse_url($file);
-        $file = DRUPAL_ROOT . $file['path'];
-        $files_to_save[] = $file;
-        $resource_show['result']['url'] = 'files/' . basename($file);
+    // Use ids in fake resource-list to create exports for every resource.
+    $resource_show_api = open_data_schema_map_api_load('ckan_resource_show');
+    foreach ($resource_ids as $id) {
+      $files_to_save = array();
+      $query = array('id' => $id, 'q' => 'api/3/action/resource_show');
+      $queries = array('id' => $id);
+      $resource_show = open_data_schema_map_render_api($resource_show_api, $query, $queries);
+      $resource_show = $resource_show['result'];
+      if (isset($resource_show['result']['url'])) {
+        $file = $resource_show['result']['url'];
+        if (strpos($file, $base_url) !== FALSE) {
+          $file = parse_url($file);
+          $file = DRUPAL_ROOT . $file['path'];
+          $files_to_save[] = $file;
+          $resource_show['result']['url'] = 'files/' . basename($file);
+        }
       }
+      $rendered_fixtures[] = array(
+        'filename' => 'resource_show?id=' . $id . '.json',
+        'content' => drupal_json_encode($resource_show),
+        'resource_files' => $files_to_save,
+      );
     }
-    $rendered_fixtures[] = array(
-      'filename' => 'resource_show?id=' . $id . '.json',
-      'content' => drupal_json_encode($resource_show),
-      'resource_files' => $files_to_save,
-    );
   }
   return $rendered_fixtures;
 }
@@ -167,7 +173,7 @@ function dkan_fixtures_open_data_schema_map_results_alter(&$result, $machine_nam
 /**
  * Saves all available fixtures.
  */
-function dkan_fixtures_dkan_save_data() {
+function dkan_fixtures_dkan_save_data($nids = array()) {
 
   // Allows other modules to receive exports.
   $modules = module_implements('dkan_fixtures_register');
@@ -182,7 +188,7 @@ function dkan_fixtures_dkan_save_data() {
       }
     }
     // Create new fixtures.
-    $fixtures = dkan_fixtures_render_fixtures();
+    $fixtures = dkan_fixtures_render_fixtures($nids);
     // Save them.
     foreach ($fixtures as $fixture) {
       dkan_fixtures_save_fixture($fixture, $module_path);

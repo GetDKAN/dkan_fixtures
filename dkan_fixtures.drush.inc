@@ -21,5 +21,10 @@ function dkan_fixtures_drush_command() {
  * Drush save_fixtures command callback.
  */
 function drush_dkan_fixtures_dkan_save_data() {
-  dkan_fixtures_dkan_save_data();
+  $args = drush_get_arguments();
+  $nids = array();
+  if (isset($args[1])) {
+    $nids = array($args[1]);
+  }
+  dkan_fixtures_dkan_save_data($nids);
 }
