@@ -134,6 +134,9 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
     // Replace with absolute path.
     if (isset($row->url)) {
       if (strpos($row->url, 'http://') === FALSE) {
+        // Fixes transliteration issues.
+        $row->url = urldecode($row->url);
+        $row->url = preg_replace('!\s+!', ' ', $row->url);
         $row->url = DRUPAL_ROOT . '/' . $this->endpoint . $row->url;
         if (file_exists($row->url)) {
           // Create file.

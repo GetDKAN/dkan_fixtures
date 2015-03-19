@@ -97,6 +97,8 @@ function dkan_fixtures_save_fixture($fixture, $module_path) {
   fclose($file);
   if (isset($fixture['resource_files'])) {
     foreach ($fixture['resource_files'] as $resource_file) {
+      $resource_file = urldecode($resource_file);
+      $resource_file = preg_replace('!\s+!', ' ', $resource_file);
       $destination = $module_path . '/data/files/' . basename($resource_file);
       file_unmanaged_copy($resource_file, $destination, FILE_EXISTS_REPLACE);
     }
