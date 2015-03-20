@@ -5,6 +5,9 @@
  * DKAN Fixtures file.
  */
 
+$odsm_path = drupal_get_path('module', 'open_data_schema_map');
+require_once $odsm_path . '/open_data_schema_map.pages.inc';
+
 /**
  * Render fixtures for datasets.
  */
