@@ -6,7 +6,7 @@
  */
 
 $odsm_path = drupal_get_path('module', 'open_data_schema_map');
-require_once $odsm_path . '/open_data_schema_map.pages.inc';
+require_once $odsm_path . '/open_data_schema_map.output.inc';
 
 /**
  * Render fixtures for datasets.
@@ -24,7 +24,7 @@ function dkan_fixtures_render_fixtures($nids = array()) {
   $package_list = $package_list_fetch['result'];
   $rendered_fixtures[] = array(
     'filename' => 'package_list.json',
-    'content' => open_data_schema_map_json_encode($package_list),
+    'content' => open_data_schema_map_json_pretty_output($package_list_api, $package_list),
   );
   $resource_ids = array();
 
@@ -48,15 +48,17 @@ function dkan_fixtures_render_fixtures($nids = array()) {
         }
         $rendered_fixtures[] = array(
           'filename' => 'package_show?id=' . $id . '.json',
-          'content' => open_data_schema_map_json_encode($package_show),
+          'content' => open_data_schema_map_json_pretty_output($package_show_api, $package_show),
         );
       }
     }
 
-    // Fake resource-list
+    // Fake resource-list api
+    $resource_list_api = array();
     $rendered_fixtures[] = array(
       'filename' => 'resource_list.json',
-      'content' => drupal_json_encode(
+      'content' => open_data_schema_map_json_pretty_output(
+        $resource_list_api,
         array(
           'help' => t('List of resource ids'),
           'result' => $resource_ids,
@@ -86,7 +88,7 @@ function dkan_fixtures_render_fixtures($nids = array()) {
       }
       $rendered_fixtures[] = array(
         'filename' => 'resource_show?id=' . $id . '.json',
-        'content' => drupal_json_encode($resource_show),
+        'content' => open_data_schema_map_json_pretty_output($resource_show_api, $resource_show),
         'resource_files' => $files_to_save,
       );
     }
