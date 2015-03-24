@@ -46,11 +46,11 @@ function dkan_fixtures_render_fixtures($nids = array()) {
           }
           $resource_ids[] = $resource['id'];
         }
-        $rendered_fixtures[] = array(
-          'filename' => 'package_show?id=' . $id . '.json',
-          'content' => open_data_schema_map_json_pretty_output($package_show_api, $package_show),
-        );
       }
+      $rendered_fixtures[] = array(
+        'filename' => 'package_show?id=' . $id . '.json',
+        'content' => open_data_schema_map_json_pretty_output($package_show_api, $package_show),
+      );
     }
 
     // Fake resource-list api
