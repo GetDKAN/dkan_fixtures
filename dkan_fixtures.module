@@ -12,6 +12,8 @@ require_once $odsm_path . '/open_data_schema_map.output.inc';
  * Render fixtures for datasets.
  */
 function dkan_fixtures_render_fixtures($nids = array()) {
+  global $base_url;
+
   $rendered_fixtures = array();
 
   // Render list of packages first.
@@ -40,9 +42,11 @@ function dkan_fixtures_render_fixtures($nids = array()) {
         foreach ($package_show['result']['resources'] as $key => $resource) {
           if (isset($resource['url'])) {
             $file = $resource['url'];
-            $file = parse_url($file);
-            $file = DRUPAL_ROOT . $file['path'];
-            $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+            if (strpos($file, $base_url) === 0) {
+              $file = parse_url($file);
+              $file = DRUPAL_ROOT . $file['path'];
+              $package_show['result']['resources'][$key]['url'] = 'files/' . basename($file);
+            }
           }
           $resource_ids[] = $resource['id'];
         }
@@ -66,8 +70,6 @@ function dkan_fixtures_render_fixtures($nids = array()) {
       ),
     );
 
-    global $base_url;
-
     // Use ids in fake resource-list to create exports for every resource.
     $resource_show_api = open_data_schema_map_api_load('ckan_resource_show');
     foreach ($resource_ids as $id) {
@@ -79,7 +81,7 @@ function dkan_fixtures_render_fixtures($nids = array()) {
       $resource_show = $resource_show['result'];
       if (isset($resource_show['result']['url'])) {
         $file = $resource_show['result']['url'];
-        if (strpos($file, $base_url) !== FALSE) {
+        if (strpos($file, $base_url) === 0) {
           $file = parse_url($file);
           $file = DRUPAL_ROOT . $file['path'];
           $files_to_save[] = $file;
