@@ -103,6 +103,7 @@ function dkan_fixtures_render_fixtures($nids = array()) {
  */
 function dkan_fixtures_save_fixture($fixture, $module_path) {
   $file = fopen($module_path . '/data/' . $fixture['filename'], 'w');
+  $fixture['content'] = mb_convert_encoding($fixture['content'], "UTF-8", "HTML-ENTITIES");
   fwrite($file, $fixture['content']);
   fclose($file);
   if (isset($fixture['resource_files'])) {
@@ -179,6 +180,7 @@ function dkan_fixtures_open_data_schema_map_results_alter(&$result, $machine_nam
     foreach ($fields as $id => $field) {
       $result[0]['dkan_additional_fields'][$field] = $restws_result[$field];
     }
+
   }
 }
 
