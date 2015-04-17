@@ -180,7 +180,6 @@ function dkan_fixtures_open_data_schema_map_results_alter(&$result, $machine_nam
     foreach ($fields as $id => $field) {
       $result[0]['dkan_additional_fields'][$field] = $restws_result[$field];
     }
-
   }
 }
 
