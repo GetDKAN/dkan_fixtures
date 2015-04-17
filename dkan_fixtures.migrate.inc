@@ -132,8 +132,8 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
   public function prepareRow($row) {
     parent::prepareRow($row);
     // Replace with absolute path.
-    if (isset($row->url)) {
-      if (strpos($row->url, 'http://') === FALSE) {
+    if (isset($row->url) && trim ($row-url)) {
+      if (strpos($row->url, 'http://') === FALSE && strpos($row->url, 'https://') === FALSE) {
         // Fixes transliteration issues.
         $row->url = urldecode($row->url);
         $row->url = preg_replace('!\s+!', ' ', $row->url);
@@ -154,6 +154,28 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
             'message' => t('%url was not available for download', array('%url' => $row->url)),
             'level' => MigrationBase::MESSAGE_NOTICE,
           );
+        }
+      }
+    }
+  }
+
+  /**
+   * Implements prepare.
+   */
+  public function prepare($node, stdClass $row) {
+    parent::prepare($node, $row);
+    // If the url is a url and has a common domain or file extension treat it
+    // as a remote link.
+    if (isset($row->url) && (strpos($row->url, 'http://') !== FALSE || strpos($row->url, 'https://') !== FALSE)) {
+      if ($ext = array_pop(explode('.', $row->url))) {
+        if ($ext == 'html' ||
+          $ext = 'shtml' ||
+          $ext = 'com' ||
+          $ext = 'net' ||
+          $ext = 'info') {
+            $node->field_link_remote_file = array();
+            $node->field_upload = array();
+            $node->field_link_api['und'][0]['url'] = $row->url;
         }
       }
     }
