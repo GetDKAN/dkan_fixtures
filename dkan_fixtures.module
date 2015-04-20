@@ -5,6 +5,8 @@
  * DKAN Fixtures file.
  */
 
+define('DKAN_FIXTURES_IS_EXPORTING', 'dkan_fixtures_is_exporting');
+
 $odsm_path = drupal_get_path('module', 'open_data_schema_map');
 require_once $odsm_path . '/open_data_schema_map.output.inc';
 
@@ -167,6 +169,18 @@ class RestWSFormatArray extends RestWSBaseFormat {
   }
 }
 
+function dkan_fixtures_open_data_schema_map_endpoint_query_alter(&$query, $machine_name) {
+  if (variable_get(DKAN_FIXTURES_IS_EXPORTING, FALSE)) {
+    if (isset($query->propertyConditions)) {
+      foreach($query->propertyConditions as $key => $property) {
+        if ($property['column'] == 'status') {
+          unset($query->propertyConditions[$key]);
+        }  
+      }
+    }
+  }
+}
+
 /**
  * Adds additional fields to package_show.
  */
@@ -187,7 +201,7 @@ function dkan_fixtures_open_data_schema_map_results_alter(&$result, $machine_nam
  * Saves all available fixtures.
  */
 function dkan_fixtures_dkan_save_data($nids = array()) {
-
+  variable_set(DKAN_FIXTURES_IS_EXPORTING, TRUE);
   // Allows other modules to receive exports.
   $modules = module_implements('dkan_fixtures_register');
   $modules = $modules ? $modules : array('dkan_fixtures');
@@ -214,4 +228,5 @@ function dkan_fixtures_dkan_save_data($nids = array()) {
       dkan_fixtures_save_fixture($fixture, $module_path);
     }
   }
+  variable_set(DKAN_FIXTURES_IS_EXPORTING, FALSE);
 }

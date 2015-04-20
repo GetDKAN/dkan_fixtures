@@ -71,6 +71,26 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
   }
 
   /**
+   * Implements prepare.
+   */
+  public function prepare($node, stdClass $row) {
+    parent::prepare($node, $row);
+    if ($row->private == 'Published') {
+      $node->status = 1;
+      var_dump($row->resource_ids);
+      foreach ($row->resource_ids as $resource) {
+
+        $resource = node_load($resource);
+        $resource->status = 1;
+        node_save($resource);
+      }
+    }
+    if (!$node->uid) {
+      $node->uid = 1;
+    }
+  }
+
+  /**
    * Implements prepareRow.
    */
   public function prepareRow($row) {
@@ -132,7 +152,7 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
   public function prepareRow($row) {
     parent::prepareRow($row);
     // Replace with absolute path.
-    if (isset($row->url) && trim ($row-url)) {
+    if (isset($row->url) && trim ($row->url)) {
       if (strpos($row->url, 'http://') === FALSE && strpos($row->url, 'https://') === FALSE) {
         // Fixes transliteration issues.
         $row->url = urldecode($row->url);
