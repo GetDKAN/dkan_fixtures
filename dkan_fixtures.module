@@ -205,28 +205,27 @@ function dkan_fixtures_dkan_save_data($nids = array()) {
   // Allows other modules to receive exports.
   $modules = module_implements('dkan_fixtures_register');
   $modules = $modules ? $modules : array('dkan_fixtures');
-  foreach ($modules as $module) {
-    $module_path = drupal_get_path('module', $module);
-    // Remove old files.
-    $files = glob($module_path . '/data/*');
-    foreach ($files as $file) {
-      if (is_file($file)) {
-        unlink($file);
-      }
+  $module = array_pop($modules);
+  $module_path = drupal_get_path('module', $module);
+  // Remove old files.
+  $files = glob($module_path . '/data/*');
+  foreach ($files as $file) {
+    if (is_file($file)) {
+      unlink($file);
     }
-    // Create new fixtures.
-    $fixtures = dkan_fixtures_render_fixtures($nids);
-    if (module_hook($module, 'dkan_fixtures_prerendered')) {
-      $prerendered = $module . '_dkan_fixtures_prerendered';
-      $prerendered = $prerendered();
-      foreach ($prerendered as $fixture) {
-        $fixtures[] = $fixture();
-      }
+  }
+  // Create new fixtures.
+  $fixtures = dkan_fixtures_render_fixtures($nids);
+  if (module_hook($module, 'dkan_fixtures_prerendered')) {
+    $prerendered = $module . '_dkan_fixtures_prerendered';
+    $prerendered = $prerendered();
+    foreach ($prerendered as $fixture) {
+      $fixtures[] = $fixture();
     }
-    // Save them.
-    foreach ($fixtures as $fixture) {
-      dkan_fixtures_save_fixture($fixture, $module_path);
-    }
+  }
+  // Save them.
+  foreach ($fixtures as $fixture) {
+    dkan_fixtures_save_fixture($fixture, $module_path);
   }
   variable_set(DKAN_FIXTURES_IS_EXPORTING, FALSE);
 }
