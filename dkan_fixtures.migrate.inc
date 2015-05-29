@@ -73,7 +73,7 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
   /**
    * Implements prepare.
    */
-  public function prepare($node, $row) {
+  public function prepare(&$node, $row) {
     parent::prepare($node, $row);
     if ($row->private == 'Published') {
       $node->status = 1;
@@ -91,7 +91,7 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
   /**
    * Implements prepareRow.
    */
-  public function prepareRow($row) {
+  public function prepareRow(&$row) {
     parent::prepareRow($row);
     $row = $this->addAdditionalFields($row);
   }
@@ -147,7 +147,7 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
   /**
    * Implements prepareRow.
    */
-  public function prepareRow($row) {
+  public function prepareRow(&$row) {
     parent::prepareRow($row);
     // Replace with absolute path.
     if (isset($row->url) && trim ($row->url)) {
@@ -180,7 +180,7 @@ class MigrateCkanResourceImport extends MigrateCkanResourceBase {
   /**
    * Implements prepare.
    */
-  public function prepare($node, stdClass $row) {
+  public function prepare(&$node, $row) {
     parent::prepare($node, $row);
     // If the url is a url and has a common domain or file extension treat it
     // as a remote link.
