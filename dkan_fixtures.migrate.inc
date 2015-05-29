@@ -73,13 +73,11 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
   /**
    * Implements prepare.
    */
-  public function prepare($node, stdClass $row) {
+  public function prepare($node, $row) {
     parent::prepare($node, $row);
     if ($row->private == 'Published') {
       $node->status = 1;
-      var_dump($row->resource_ids);
       foreach ($row->resource_ids as $resource) {
-
         $resource = node_load($resource);
         $resource->status = 1;
         node_save($resource);
