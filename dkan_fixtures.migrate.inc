@@ -77,7 +77,6 @@ class MigrateCkanDatasetImport extends MigrateCkanDatasetBase {
     parent::prepare($node, $row);
     if ($row->private == 'Published') {
       $node->status = 1;
-      var_dump($row->resource_ids);
       foreach ($row->resource_ids as $resource) {
 
         $resource = node_load($resource);
