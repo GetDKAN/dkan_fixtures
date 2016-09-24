@@ -42,6 +42,7 @@ class MigrateCkanDatasetFixturesDefault extends MigrateCkanDatasetImport {
    * Implements prepare.
    */
   public function prepare($entity, $row) {
+    parent::prepare($entity, $row);
   }
 
 }
